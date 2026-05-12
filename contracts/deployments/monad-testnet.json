@@ -1,0 +1,25 @@
+{
+  "network": "monad_testnet",
+  "chainId": 10143,
+  "rpcUrl": "https://testnet-rpc.monad.xyz",
+  "explorerBaseUrl": "https://testnet.monadexplorer.com",
+  "deployer": "0x1ddce6345ea1997b57f4959e7b5d9ee1fd1eb329",
+  "deployedAt": "2026-05-12T12:37:17.189000+00:00",
+  "commit": "7160a84",
+  "contracts": {
+    "Passport": {
+      "address": "0x6d1a5fba0CBbB49878CdF333AA4A7de169bd45A4",
+      "txHash": "0xa07263ae1ffcad048f02d3ce53e6b0741f13faa47d83029af7123a0a000b9bf1",
+      "abiPath": "./abi/Passport.json"
+    },
+    "Marketplace": {
+      "address": "0xa99bde0832Db536a39465eB6C412D995bB85dd91",
+      "txHash": "0x3dee83e887aa88f4ce1023cc45642687f943746ad3a583bfffd8729adcae2231",
+      "abiPath": "./abi/Marketplace.json"
+    }
+  },
+  "wiringTx": {
+    "description": "Passport.setMarketplace(Marketplace) \u2014 one-time binding",
+    "txHash": "0xafc953e8fdb8649f4d6d985aa18edbe3a9e778e15d95986f9f023555a07b72b3"
+  }
+}
