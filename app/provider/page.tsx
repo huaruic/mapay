@@ -1,11 +1,29 @@
-import { Activity, Banknote, Plus, Power, Star } from "lucide-react";
+import Link from "next/link";
+import { Activity, ArrowUpRight, Banknote, BadgeCheck, Plus, Power, Star } from "lucide-react";
 import { AppShell, PageHeader } from "@/components/app-shell";
 import { Field, Metric, PrimaryButton, SecondaryButton, SectionTitle, StatusPill } from "@/components/ui";
 import { services } from "@/lib/mock-data";
 
-export default function ProviderPage() {
+export default async function ProviderPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ registered?: string }>;
+}) {
+  const { registered } = await searchParams;
+
   return (
     <AppShell>
+      {registered === "1" ? (
+        <div className="mb-6 flex items-start gap-3 rounded-[6px] border border-[var(--green-dark)] bg-white p-4">
+          <BadgeCheck size={18} className="mt-0.5 text-[var(--green-dark)]" />
+          <div>
+            <div className="text-sm font-semibold">Tool registered on Monad ✓</div>
+            <p className="mt-1 text-xs text-[var(--muted)]">
+              链上 finality 后会进入下方 tools 表格。Mock 演示状态，未真正广播交易。
+            </p>
+          </div>
+        </div>
+      ) : null}
       <PageHeader
         eyebrow="Provider console"
         title="注册、管理、提现你的 paid AI tools."
@@ -13,10 +31,12 @@ export default function ProviderPage() {
         action={
           <div className="flex gap-2">
             <SecondaryButton>Withdraw 4.92 MON</SecondaryButton>
-            <PrimaryButton>
-              <Plus className="mr-2" size={16} />
-              Register Tool
-            </PrimaryButton>
+            <Link href="/provider/tools/new">
+              <PrimaryButton>
+                <Plus className="mr-2" size={16} />
+                Register Tool
+              </PrimaryButton>
+            </Link>
           </div>
         }
       />
@@ -65,7 +85,16 @@ export default function ProviderPage() {
         </div>
 
         <div className="panel-flat p-5">
-          <SectionTitle label="Register tool" title="MCP-compatible manifest" />
+          <div className="flex items-start justify-between gap-3">
+            <SectionTitle label="Register tool" title="MCP-compatible manifest" />
+            <Link
+              href="/provider/tools/new"
+              className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-[var(--green-dark)] hover:underline"
+            >
+              Open full form
+              <ArrowUpRight size={12} />
+            </Link>
+          </div>
           <div className="grid gap-4">
             <Field label="Service name" value="Copywriter Agent" />
             <Field label="Endpoint" value="https://agentpay.app/api/tools/copywriter" />
@@ -76,7 +105,9 @@ export default function ProviderPage() {
               multiline
               value={'{"inputSchema":{"topic":"string","tone":"enum","count":"number"},"outputSchema":{"tweets":"string[]"}}'}
             />
-            <PrimaryButton>Register on-chain</PrimaryButton>
+            <Link href="/provider/tools/new">
+              <PrimaryButton>Register on-chain</PrimaryButton>
+            </Link>
           </div>
         </div>
       </section>
