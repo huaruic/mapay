@@ -45,9 +45,16 @@ describe("Server boot + plugin registration", () => {
   });
 
   test("known routes are registered", async () => {
-    const routes = app.printRoutes();
-    expect(routes).toContain("healthz");
-    expect(routes).toContain("auth");
-    expect(routes).toContain("marketplace");
+    // printRoutes() output format varies with route count; assert reachability
+    // directly rather than parse the tree string.
+    const health = await app.inject({ method: "GET", url: "/healthz" });
+    expect(health.statusCode).toBe(200);
+    const nonce = await app.inject({ method: "POST", url: "/api/auth/nonce" });
+    expect(nonce.statusCode).toBe(200);
+    const tools = await app.inject({
+      method: "GET",
+      url: "/api/marketplace/tools?limit=1",
+    });
+    expect(tools.statusCode).toBe(200);
   });
 });

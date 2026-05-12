@@ -36,3 +36,58 @@ vi.mock("@rainbow-me/rainbowkit", () => ({
       "Connect Wallet",
     ),
 }));
+
+// --- next/navigation --------------------------------------------------------
+// Track F's client pages call useRouter / useSearchParams / useParams. In a
+// non-app-router test environment those throw "invariant expected app router
+// to be mounted". Stub with no-op values that match the read shape.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+    prefetch: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(""),
+  usePathname: () => "/",
+  useParams: () => ({}),
+  notFound: () => {
+    throw new Error("notFound");
+  },
+  redirect: (_url: string) => {
+    throw new Error("redirect:" + _url);
+  },
+}));
+
+// --- wagmi ------------------------------------------------------------------
+// Track F's client pages call useAccount / useSendTransaction etc. Stub with
+// disconnected-state defaults so render tests assert "Connect Wallet" CTAs.
+vi.mock("wagmi", async (importOriginal) => {
+  const actual = (await importOriginal()) as object;
+  return {
+    ...actual,
+    useAccount: () => ({
+      address: undefined,
+      isConnected: false,
+      status: "disconnected" as const,
+    }),
+    useSendTransaction: () => ({
+      sendTransaction: vi.fn(),
+      sendTransactionAsync: vi.fn(async () => "0x" as `0x${string}`),
+      isPending: false,
+      isSuccess: false,
+      isError: false,
+      data: undefined,
+      error: null,
+      reset: vi.fn(),
+    }),
+    useWaitForTransactionReceipt: () => ({
+      data: undefined,
+      isLoading: false,
+      isSuccess: false,
+    }),
+    useChainId: () => 10143,
+  };
+});

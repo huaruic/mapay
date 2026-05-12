@@ -1,0 +1,11 @@
+{
+  "name": "@agentpay/contracts",
+  "version": "0.0.1",
+  "private": true,
+  "description": "AgentPay Passport smart contracts (Foundry).",
+  "scripts": {
+    "build": "PATH=\"$HOME/.foundry/bin:$PATH\" forge build",
+    "test": "PATH=\"$HOME/.foundry/bin:$PATH\" forge test",
+    "deploy:local": "bash scripts/deploy-local.sh"
+  }
+}

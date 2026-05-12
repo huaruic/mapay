@@ -1,0 +1,38 @@
+# Fly.io deployment template for echo-provider.
+# Copy to fly.toml and `fly launch --copy-config` (or `fly deploy`).
+# Secrets (PROVIDER_PK) must be set via `fly secrets set`, NOT in this file.
+
+app = "agentpay-echo-provider"
+primary_region = "sjc"
+
+[build]
+
+[env]
+  PORT = "4100"
+  # CHAIN_RPC_URL, MARKETPLACE_ADDRESS, PROVIDER_ADDRESS, TOOL_ID, PRICE_WEI
+  # can live here. Keep PROVIDER_PK in `fly secrets set` only.
+
+[http_service]
+  internal_port = 4100
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 50
+    hard_limit = 100
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 256
+
+[checks]
+  [checks.alive]
+    type = "tcp"
+    port = 4100
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"

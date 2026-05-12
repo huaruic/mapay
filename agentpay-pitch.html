@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgentPay Passport — Monad Blitz Shanghai V2</title>
+
+    <!-- Fontshare: Clash Display (display) + General Sans (body) + JetBrains Mono (code) -->
+    <link rel="preconnect" href="https://api.fontshare.com">
+    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=clash-display@600,700&f[]=general-sans@400,500,600&f[]=jetbrains-mono@400,500&display=swap">
+
+    <style>
+        /* ===========================================
+           THEME — change here to retheme everything
+           =========================================== */
+        :root {
+            /* Colors — electric duotone on warm-dark canvas */
+            --bg-0: #0a0910;
+            --bg-1: #11101a;
+            --bg-2: #1b1929;
+            --text-0: #f5f3eb;
+            --text-1: #c4bfb1;
+            --text-2: #8c8678;
+            --accent: #ff2e6c;        /* electric magenta */
+            --accent-glow: rgba(255, 46, 108, 0.35);
+            --mint: #66ffb2;          /* protocol/chain mint */
+            --mint-glow: rgba(102, 255, 178, 0.25);
+            --amber: #ffd34d;         /* signal highlight */
+            --grid: rgba(245, 243, 235, 0.04);
+            --hairline: rgba(245, 243, 235, 0.12);
+
+            /* Typography */
+            --font-display: 'Clash Display', system-ui, sans-serif;
+            --font-body: 'General Sans', system-ui, sans-serif;
+            --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+            --title-size: clamp(2rem, 6vw, 5.5rem);
+            --h2-size: clamp(1.5rem, 3.8vw, 3rem);
+            --h3-size: clamp(1.05rem, 2vw, 1.6rem);
+            --body-size: clamp(0.8rem, 1.3vw, 1.05rem);
+            --small-size: clamp(0.65rem, 0.95vw, 0.85rem);
+
+            --slide-padding: clamp(1.25rem, 4vw, 4rem);
+            --content-gap: clamp(0.75rem, 2vw, 2rem);
+
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --duration-normal: 0.7s;
+        }
+
+        /* ===========================================
+           BASE
+           =========================================== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        /* --- viewport-base.css (mandatory) --- */
+        html, body { height: 100%; overflow-x: hidden; }
+        html { scroll-snap-type: y mandatory; scroll-behavior: smooth; }
+        .slide {
+            width: 100vw;
+            height: 100vh;
+            height: 100dvh;
+            overflow: hidden;
+            scroll-snap-align: start;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        .slide-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-height: 100%;
+            overflow: hidden;
+            padding: var(--slide-padding);
+        }
+        .card, .container, .content-box {
+            max-width: min(92vw, 1100px);
+            max-height: min(80vh, 720px);
+        }
+        .feature-list, .bullet-list { gap: clamp(0.4rem, 1vh, 1rem); }
+        .feature-list li, .bullet-list li { font-size: var(--body-size); line-height: 1.5; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr)); gap: clamp(0.5rem, 1.5vw, 1rem); }
+        img, .image-container { max-width: 100%; max-height: min(50vh, 400px); object-fit: contain; }
+
+        @media (max-height: 700px) {
+            :root {
+                --slide-padding: clamp(0.75rem, 3vw, 2rem);
+                --content-gap: clamp(0.4rem, 1.5vw, 1rem);
+                --title-size: clamp(1.5rem, 5vw, 3rem);
+                --h2-size: clamp(1.1rem, 3vw, 1.9rem);
+            }
+        }
+        @media (max-height: 600px) {
+            :root {
+                --slide-padding: clamp(0.5rem, 2.5vw, 1.5rem);
+                --content-gap: clamp(0.3rem, 1vw, 0.75rem);
+                --title-size: clamp(1.2rem, 4.5vw, 2.4rem);
+                --body-size: clamp(0.7rem, 1.2vw, 0.95rem);
+            }
+            .nav-dots, .keyboard-hint, .decorative { display: none; }
+        }
+        @media (max-height: 500px) {
+            :root {
+                --slide-padding: clamp(0.4rem, 2vw, 1rem);
+                --title-size: clamp(1rem, 3.5vw, 1.6rem);
+                --h2-size: clamp(0.9rem, 2.5vw, 1.3rem);
+                --body-size: clamp(0.65rem, 1vw, 0.85rem);
+            }
+        }
+        @media (max-width: 600px) {
+            :root { --title-size: clamp(1.4rem, 8vw, 2.8rem); }
+            .grid { grid-template-columns: 1fr; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                transition-duration: 0.2s !important;
+            }
+            html { scroll-behavior: auto; }
+        }
+
+        /* ===========================================
+           CANVAS — body shell, animated grid background
+           =========================================== */
+        body {
+            background: var(--bg-0);
+            color: var(--text-0);
+            font-family: var(--font-body);
+            font-size: var(--body-size);
+            -webkit-font-smoothing: antialiased;
+            font-feature-settings: 'ss01', 'cv11';
+        }
+
+        /* Animated grid background (decorative). Sits behind every slide. */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 48px 48px,
+                linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 48px 48px,
+                radial-gradient(circle at 20% 30%, rgba(255, 46, 108, 0.10), transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(102, 255, 178, 0.08), transparent 55%);
+            pointer-events: none;
+            z-index: -1;
+            animation: gridDrift 28s linear infinite;
+        }
+        @keyframes gridDrift {
+            from { background-position: 0 0, 0 0, 0 0, 0 0; }
+            to   { background-position: 48px 48px, 48px 48px, 0 0, 0 0; }
+        }
+
+        /* ===========================================
+           REUSABLE — text styles, tags, dividers
+           =========================================== */
+        h1, h2, h3 {
+            font-family: var(--font-display);
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            line-height: 1.05;
+        }
+        .mono { font-family: var(--font-mono); }
+        .accent { color: var(--accent); }
+        .mint { color: var(--mint); }
+        .amber { color: var(--amber); }
+        .muted { color: var(--text-2); }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4em;
+            padding: 0.3em 0.7em;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--mint);
+            border: 1px solid var(--mint);
+            border-radius: 999px;
+            background: var(--mint-glow);
+        }
+        .tag.magenta { color: var(--accent); border-color: var(--accent); background: var(--accent-glow); }
+        .tag.amber   { color: var(--amber);  border-color: var(--amber);  background: rgba(255, 211, 77, 0.15); }
+
+        .slide-number {
+            position: absolute;
+            top: clamp(0.75rem, 2vw, 1.5rem);
+            right: clamp(0.75rem, 2vw, 1.5rem);
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-2);
+            letter-spacing: 0.15em;
+        }
+        .slide-tag-tl {
+            position: absolute;
+            top: clamp(0.75rem, 2vw, 1.5rem);
+            left: clamp(0.75rem, 2vw, 1.5rem);
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-2);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+        .slide-tag-tl::before {
+            content: '';
+            display: inline-block;
+            width: 0.6em; height: 0.6em;
+            margin-right: 0.5em;
+            background: var(--accent);
+            border-radius: 999px;
+            box-shadow: 0 0 12px var(--accent-glow);
+            animation: pulse 2s ease-in-out infinite;
+            vertical-align: middle;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50%      { opacity: 0.5; transform: scale(0.85); }
+        }
+
+        /* ===========================================
+           ANIMATIONS — .reveal triggered on slide enter
+           =========================================== */
+        .reveal {
+            opacity: 0;
+            transform: translateY(28px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .slide.visible .reveal { opacity: 1; transform: translateY(0); }
+        .reveal-x {
+            opacity: 0;
+            transform: translateX(-32px);
+            transition: opacity var(--duration-normal) var(--ease-out-expo),
+                        transform var(--duration-normal) var(--ease-out-expo);
+        }
+        .slide.visible .reveal-x { opacity: 1; transform: translateX(0); }
+
+        /* Stagger delays for sequential reveal */
+        .reveal:nth-child(1), .reveal-x:nth-child(1) { transition-delay: 0.05s; }
+        .reveal:nth-child(2), .reveal-x:nth-child(2) { transition-delay: 0.15s; }
+        .reveal:nth-child(3), .reveal-x:nth-child(3) { transition-delay: 0.25s; }
+        .reveal:nth-child(4), .reveal-x:nth-child(4) { transition-delay: 0.35s; }
+        .reveal:nth-child(5), .reveal-x:nth-child(5) { transition-delay: 0.45s; }
+        .reveal:nth-child(6), .reveal-x:nth-child(6) { transition-delay: 0.55s; }
+        .reveal:nth-child(7), .reveal-x:nth-child(7) { transition-delay: 0.65s; }
+        .reveal:nth-child(8), .reveal-x:nth-child(8) { transition-delay: 0.75s; }
+
+        /* Glow-pulse cursor on first slide */
+        @keyframes blink { 50% { opacity: 0; } }
+        .cursor { display: inline-block; width: 0.45em; height: 1em; background: var(--accent); vertical-align: -0.1em; margin-left: 0.15em; animation: blink 1s steps(1) infinite; box-shadow: 0 0 16px var(--accent-glow); }
+
+        /* ===========================================
+           SLIDE 1 — Title
+           =========================================== */
+        .title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: left;
+            padding: var(--slide-padding);
+        }
+        .title-slide .inner {
+            width: min(100%, 1100px);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.75rem, 1.5vw, 1.5rem);
+        }
+        .title-slide .kicker {
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--mint);
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+        }
+        .title-slide h1 {
+            font-size: var(--title-size);
+            line-height: 0.95;
+            letter-spacing: -0.04em;
+        }
+        .title-slide h1 .gradient {
+            background: linear-gradient(110deg, var(--accent) 0%, var(--amber) 45%, var(--mint) 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            background-size: 200% 100%;
+            animation: shine 6s linear infinite;
+        }
+        @keyframes shine {
+            from { background-position: 0% 0%; }
+            to   { background-position: 200% 0%; }
+        }
+        .title-slide .tagline {
+            font-size: var(--h3-size);
+            color: var(--text-1);
+            max-width: 50ch;
+            line-height: 1.4;
+        }
+        .title-slide .meta-row {
+            display: flex;
+            gap: clamp(0.5rem, 1.5vw, 1.5rem);
+            flex-wrap: wrap;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-2);
+            border-top: 1px solid var(--hairline);
+            padding-top: clamp(0.75rem, 1.5vw, 1.25rem);
+            margin-top: clamp(0.5rem, 1.5vw, 1rem);
+        }
+        .title-slide .meta-row span strong {
+            color: var(--text-0);
+            font-weight: 500;
+        }
+
+        /* ===========================================
+           SLIDE 2 — Problem (two-column)
+           =========================================== */
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(1rem, 3vw, 3rem);
+            align-items: stretch;
+            max-width: min(100%, 1200px);
+            margin: 0 auto;
+            width: 100%;
+        }
+        @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+        .pain-card {
+            background: linear-gradient(180deg, var(--bg-1), var(--bg-0));
+            border: 1px solid var(--hairline);
+            border-radius: 14px;
+            padding: clamp(1rem, 2.5vw, 2rem);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.5rem, 1.2vw, 1rem);
+            position: relative;
+            overflow: hidden;
+        }
+        .pain-card::before {
+            content: '';
+            position: absolute;
+            top: -1px; left: -1px; right: -1px; height: 2px;
+            background: var(--accent);
+            box-shadow: 0 0 16px var(--accent-glow);
+        }
+        .pain-card.right::before { background: var(--mint); box-shadow: 0 0 16px var(--mint-glow); }
+        .pain-card .role {
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .pain-card.right .role { color: var(--mint); }
+        .pain-card h3 { font-size: var(--h3-size); line-height: 1.2; }
+        .pain-card .quote {
+            font-family: var(--font-display);
+            font-style: italic;
+            font-size: clamp(1rem, 1.6vw, 1.3rem);
+            color: var(--text-0);
+            line-height: 1.3;
+            border-left: 3px solid var(--accent);
+            padding-left: 0.8em;
+        }
+        .pain-card.right .quote { border-color: var(--mint); }
+        .pain-card p { color: var(--text-1); line-height: 1.55; }
+        .pain-card .stat {
+            font-family: var(--font-mono);
+            font-size: clamp(1.2rem, 2.5vw, 2rem);
+            color: var(--amber);
+            margin-top: auto;
+            padding-top: clamp(0.5rem, 1vw, 1rem);
+            border-top: 1px dashed var(--hairline);
+        }
+
+        /* ===========================================
+           SLIDE 3 — Insight (big quote)
+           =========================================== */
+        .quote-slide .slide-content {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: clamp(0.75rem, 2vw, 2rem);
+        }
+        .quote-slide blockquote {
+            font-family: var(--font-display);
+            font-size: clamp(1.5rem, 4.5vw, 3.8rem);
+            line-height: 1.1;
+            letter-spacing: -0.025em;
+            max-width: 22ch;
+            color: var(--text-0);
+        }
+        .quote-slide .marks {
+            font-family: var(--font-display);
+            font-size: clamp(3rem, 8vw, 6rem);
+            color: var(--accent);
+            line-height: 0.5;
+            opacity: 0.4;
+        }
+        .quote-slide .sub {
+            color: var(--text-1);
+            max-width: 56ch;
+            font-size: var(--body-size);
+            line-height: 1.6;
+            border-top: 1px solid var(--hairline);
+            padding-top: clamp(0.75rem, 1.5vw, 1.25rem);
+            margin-top: clamp(0.5rem, 1vw, 1rem);
+        }
+
+        /* ===========================================
+           SLIDE 4 — Three Pillars (3-card grid)
+           =========================================== */
+        .pillar-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(0.75rem, 1.8vw, 1.5rem);
+            max-width: min(100%, 1250px);
+            margin: 0 auto;
+            width: 100%;
+        }
+        @media (max-width: 800px) { .pillar-grid { grid-template-columns: 1fr; } }
+        .pillar {
+            background: linear-gradient(180deg, var(--bg-1), var(--bg-0) 70%);
+            border: 1px solid var(--hairline);
+            border-radius: 14px;
+            padding: clamp(0.9rem, 2vw, 1.5rem);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.4rem, 1vw, 0.8rem);
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.35s var(--ease-out-expo), border-color 0.35s var(--ease-out-expo);
+        }
+        .pillar:hover { transform: translateY(-4px); border-color: var(--accent); }
+        .pillar .num {
+            font-family: var(--font-mono);
+            font-size: clamp(1.4rem, 2.5vw, 2rem);
+            color: var(--accent);
+            line-height: 1;
+        }
+        .pillar:nth-child(2) .num { color: var(--mint); }
+        .pillar:nth-child(3) .num { color: var(--amber); }
+        .pillar h3 { font-size: clamp(1rem, 1.6vw, 1.35rem); line-height: 1.2; }
+        .pillar p { color: var(--text-1); font-size: var(--body-size); line-height: 1.5; }
+        .pillar .chip {
+            margin-top: auto;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-2);
+            border-top: 1px solid var(--hairline);
+            padding-top: 0.6em;
+        }
+
+        /* ===========================================
+           SLIDE 5 — Timeline (Charlie's journey)
+           =========================================== */
+        .timeline {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.4rem, 1vw, 0.75rem);
+            max-width: min(100%, 900px);
+            margin: 0 auto;
+            width: 100%;
+        }
+        .tl-row {
+            display: grid;
+            grid-template-columns: 60px 1fr auto;
+            gap: clamp(0.6rem, 1.5vw, 1.25rem);
+            align-items: center;
+            padding: clamp(0.5rem, 1vw, 0.8rem) clamp(0.6rem, 1.5vw, 1rem);
+            background: var(--bg-1);
+            border-left: 2px solid var(--mint);
+            border-radius: 0 8px 8px 0;
+            font-size: var(--body-size);
+            line-height: 1.4;
+        }
+        .tl-row.payment { border-left-color: var(--accent); }
+        .tl-row.signal  { border-left-color: var(--amber); }
+        .tl-row .ts {
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--mint);
+            letter-spacing: 0.05em;
+        }
+        .tl-row.payment .ts { color: var(--accent); }
+        .tl-row.signal .ts  { color: var(--amber); }
+        .tl-row .what strong { color: var(--text-0); font-weight: 600; }
+        .tl-row .what span { color: var(--text-2); }
+        .tl-row .amount {
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-2);
+            white-space: nowrap;
+        }
+        .tl-row .amount .mon { color: var(--accent); }
+
+        /* ===========================================
+           SLIDE 6 — Architecture diagram
+           =========================================== */
+        .arch {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: clamp(0.5rem, 1.5vw, 1.25rem);
+            max-width: min(100%, 1100px);
+            margin: 0 auto;
+            width: 100%;
+            align-items: stretch;
+        }
+        @media (max-width: 800px) { .arch { grid-template-columns: 1fr; } }
+        .node {
+            background: var(--bg-1);
+            border: 1px solid var(--hairline);
+            border-radius: 12px;
+            padding: clamp(0.7rem, 1.5vw, 1.1rem);
+            display: flex;
+            flex-direction: column;
+            gap: 0.4em;
+            position: relative;
+        }
+        .node .lbl {
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: var(--mint);
+        }
+        .node.web .lbl   { color: var(--mint); }
+        .node.api .lbl   { color: var(--accent); }
+        .node.chain .lbl { color: var(--amber); }
+        .node h4 {
+            font-family: var(--font-display);
+            font-size: clamp(0.95rem, 1.5vw, 1.2rem);
+            color: var(--text-0);
+        }
+        .node ul {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3em;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-1);
+        }
+        .node ul li::before { content: '› '; color: var(--text-2); }
+
+        .arch-arrow-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: clamp(0.5rem, 1.5vw, 1.25rem);
+            margin-top: clamp(0.4rem, 1vw, 0.8rem);
+            max-width: min(100%, 1100px);
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+        }
+        .arch-arrow {
+            text-align: center;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-2);
+            position: relative;
+            padding: 0.4em 0;
+        }
+        .arch-arrow::before {
+            content: '';
+            position: absolute;
+            inset: 50% 10% auto 10%;
+            height: 1px;
+            background: linear-gradient(90deg, var(--mint), var(--accent), var(--amber));
+            opacity: 0.5;
+        }
+        .arch-arrow span {
+            background: var(--bg-0);
+            padding: 0 0.6em;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* ===========================================
+           SLIDE 7 — Competitive Matrix (2x2)
+           =========================================== */
+        .matrix {
+            position: relative;
+            width: min(100%, 720px);
+            aspect-ratio: 1 / 1;
+            max-height: min(62vh, 560px);
+            margin: 0 auto;
+            border: 1px solid var(--hairline);
+            border-radius: 12px;
+            background:
+                linear-gradient(var(--hairline), var(--hairline)) center / 100% 1px no-repeat,
+                linear-gradient(var(--hairline), var(--hairline)) center / 1px 100% no-repeat,
+                var(--bg-1);
+        }
+        .axis-label {
+            position: absolute;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-2);
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+        .axis-label.top    { top: 6px; left: 50%; transform: translateX(-50%); }
+        .axis-label.bottom { bottom: 6px; left: 50%; transform: translateX(-50%); }
+        .axis-label.left   { left: 8px; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: left center; }
+        .axis-label.right  { right: 8px; top: 50%; transform: translateY(-50%) rotate(90deg); transform-origin: right center; }
+        .pt {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .pt .dot {
+            width: clamp(10px, 1.5vw, 14px);
+            height: clamp(10px, 1.5vw, 14px);
+            border-radius: 50%;
+            background: var(--text-2);
+            box-shadow: 0 0 0 4px rgba(140,134,120,0.18);
+        }
+        .pt.us .dot { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow), 0 0 24px var(--accent-glow); animation: pulseRing 2.4s ease-in-out infinite; }
+        @keyframes pulseRing {
+            0%, 100% { box-shadow: 0 0 0 4px var(--accent-glow), 0 0 24px var(--accent-glow); }
+            50%      { box-shadow: 0 0 0 12px transparent, 0 0 28px var(--accent-glow); }
+        }
+        .pt .label {
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-1);
+            white-space: nowrap;
+            background: var(--bg-1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid var(--hairline);
+        }
+        .pt.us .label { color: var(--accent); border-color: var(--accent); }
+
+        .matrix-side {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(0.5rem, 1vw, 0.8rem);
+            max-width: 30ch;
+            padding-left: clamp(0.5rem, 1.5vw, 1.5rem);
+        }
+        .matrix-side h3 { font-size: var(--h3-size); }
+        .matrix-side p { color: var(--text-1); font-size: var(--body-size); line-height: 1.55; }
+
+        .matrix-wrap {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: clamp(1rem, 3vw, 2.5rem);
+            align-items: center;
+            max-width: min(100%, 1200px);
+            margin: 0 auto;
+        }
+        @media (max-width: 800px) {
+            .matrix-wrap { grid-template-columns: 1fr; }
+            .matrix-side { padding-left: 0; max-width: 100%; }
+        }
+
+        /* ===========================================
+           SLIDE 8 — Build Status (checklist)
+           =========================================== */
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: clamp(0.5rem, 1.5vw, 1rem);
+            max-width: min(100%, 1100px);
+            margin: 0 auto;
+            width: 100%;
+        }
+        @media (max-width: 700px) { .status-grid { grid-template-columns: 1fr; } }
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: clamp(0.5rem, 1vw, 0.9rem);
+            padding: clamp(0.55rem, 1.2vw, 0.9rem) clamp(0.7rem, 1.5vw, 1.1rem);
+            background: var(--bg-1);
+            border: 1px solid var(--hairline);
+            border-radius: 10px;
+            font-size: var(--body-size);
+        }
+        .status-row .icon {
+            width: clamp(22px, 2.4vw, 30px);
+            height: clamp(22px, 2.4vw, 30px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .status-row.done .icon  { background: var(--mint); color: var(--bg-0); box-shadow: 0 0 12px var(--mint-glow); }
+        .status-row.wip  .icon  { background: var(--amber); color: var(--bg-0); animation: pulse 1.4s infinite; }
+        .status-row.todo .icon  { background: transparent; color: var(--text-2); border: 1px dashed var(--text-2); }
+        .status-row .name strong { color: var(--text-0); font-weight: 600; }
+        .status-row .name span   { color: var(--text-2); font-family: var(--font-mono); font-size: var(--small-size); }
+
+        .next-strip {
+            margin-top: clamp(0.75rem, 2vw, 1.5rem);
+            padding: clamp(0.6rem, 1.5vw, 1rem);
+            background: linear-gradient(90deg, var(--accent-glow), transparent);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            font-size: var(--body-size);
+            color: var(--text-1);
+            max-width: min(100%, 1100px);
+            margin-left: auto;
+            margin-right: auto;
+            width: 100%;
+        }
+        .next-strip strong { color: var(--accent); font-family: var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; margin-right: 0.5em; font-size: var(--small-size); }
+
+        /* ===========================================
+           SLIDE 9 — Closing
+           =========================================== */
+        .close-slide .slide-content {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            gap: clamp(0.75rem, 2vw, 2rem);
+        }
+        .close-slide h1 {
+            font-size: clamp(2rem, 6vw, 5rem);
+            max-width: 18ch;
+            line-height: 1.0;
+        }
+        .close-slide .cta {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6em;
+            font-family: var(--font-mono);
+            font-size: clamp(0.9rem, 1.3vw, 1.05rem);
+            padding: 0.7em 1.4em;
+            border: 1px solid var(--accent);
+            border-radius: 999px;
+            color: var(--text-0);
+            background: var(--accent-glow);
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+        .close-slide .signature {
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-2);
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            border-top: 1px solid var(--hairline);
+            padding-top: clamp(0.5rem, 1.2vw, 1rem);
+        }
+
+        /* ===========================================
+           PROGRESS BAR + NAV DOTS
+           =========================================== */
+        .progress-bar {
+            position: fixed;
+            top: 0; left: 0;
+            height: 3px;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--amber), var(--mint));
+            box-shadow: 0 0 12px var(--accent-glow);
+            z-index: 9999;
+            transition: width 0.2s ease-out;
+        }
+        .nav-dots {
+            position: fixed;
+            right: clamp(0.5rem, 1.5vw, 1.5rem);
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 0.65em;
+            z-index: 9999;
+        }
+        .nav-dots button {
+            width: 10px; height: 10px;
+            border-radius: 50%;
+            background: transparent;
+            border: 1px solid var(--text-2);
+            cursor: pointer;
+            padding: 0;
+            transition: all 0.3s var(--ease-out-expo);
+        }
+        .nav-dots button.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            transform: scale(1.4);
+            box-shadow: 0 0 12px var(--accent-glow);
+        }
+        .keyboard-hint {
+            position: fixed;
+            bottom: clamp(0.5rem, 1.5vw, 1rem);
+            left: clamp(0.5rem, 1.5vw, 1rem);
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+            color: var(--text-2);
+            z-index: 9999;
+            letter-spacing: 0.12em;
+        }
+        .keyboard-hint kbd {
+            background: var(--bg-2);
+            border: 1px solid var(--hairline);
+            border-radius: 4px;
+            padding: 0.1em 0.4em;
+            color: var(--text-1);
+        }
+
+        /* ===========================================
+           INLINE EDITING (user opted-in)
+           =========================================== */
+        .edit-hotzone {
+            position: fixed; top: 0; left: 0;
+            width: 80px; height: 80px;
+            z-index: 10000;
+            cursor: pointer;
+        }
+        .edit-toggle {
+            position: fixed;
+            top: clamp(0.5rem, 1.5vw, 1rem);
+            left: clamp(0.5rem, 1.5vw, 1rem);
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            border: 1px solid var(--accent);
+            background: var(--bg-1);
+            color: var(--accent);
+            font-size: 1.1rem;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.2s ease;
+            z-index: 10001;
+        }
+        .edit-toggle:hover { transform: scale(1.08); }
+        .edit-toggle.show, .edit-toggle.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .edit-toggle.active { background: var(--accent); color: var(--bg-0); }
+
+        .edit-mode [contenteditable="true"] {
+            outline: 1px dashed var(--accent);
+            outline-offset: 4px;
+            border-radius: 4px;
+            cursor: text;
+        }
+        .edit-mode [contenteditable="true"]:hover {
+            background: var(--accent-glow);
+        }
+        .edit-mode [contenteditable="true"]:focus {
+            outline: 2px solid var(--accent);
+            background: rgba(255, 46, 108, 0.08);
+        }
+
+        .edit-toolbar {
+            position: fixed;
+            bottom: clamp(0.5rem, 1.5vw, 1rem);
+            right: clamp(0.5rem, 1.5vw, 1rem);
+            display: none;
+            gap: 0.5em;
+            padding: 0.5em;
+            background: var(--bg-2);
+            border: 1px solid var(--accent);
+            border-radius: 999px;
+            z-index: 10001;
+            font-family: var(--font-mono);
+            font-size: var(--small-size);
+        }
+        .edit-toolbar.show { display: flex; }
+        .edit-toolbar button {
+            padding: 0.4em 0.9em;
+            border-radius: 999px;
+            border: 1px solid var(--hairline);
+            background: var(--bg-1);
+            color: var(--text-0);
+            cursor: pointer;
+            font-family: inherit;
+            font-size: inherit;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .edit-toolbar button:hover { border-color: var(--accent); color: var(--accent); }
+        .edit-toolbar .save { background: var(--accent); color: var(--bg-0); border-color: var(--accent); }
+    </style>
+</head>
+<body>
+    <!-- Progress bar tracks scroll position -->
+    <div class="progress-bar" id="progressBar"></div>
+
+    <!-- Nav dots (JS-generated) -->
+    <nav class="nav-dots" id="navDots" aria-label="Slide navigation"></nav>
+
+    <!-- Keyboard hint -->
+    <div class="keyboard-hint"><kbd>↓</kbd> <kbd>Space</kbd> next · <kbd>E</kbd> edit</div>
+
+    <!-- Edit mode controls -->
+    <div class="edit-hotzone" id="editHotzone" title="Hover to reveal edit mode"></div>
+    <button class="edit-toggle" id="editToggle" title="Toggle edit mode (E)" aria-label="Toggle edit mode">✎</button>
+    <div class="edit-toolbar" id="editToolbar">
+        <button id="saveBtn" class="save">Save</button>
+        <button id="exportBtn">Export HTML</button>
+        <button id="resetBtn">Reset</button>
+    </div>
+
+    <!-- ======================================================
+         SLIDE 1 — Title
+         ====================================================== -->
+    <section class="slide title-slide" data-title="Cover">
+        <span class="slide-tag-tl reveal" contenteditable="false">Monad Blitz · Shanghai V2</span>
+        <span class="slide-number" contenteditable="false">01 / 09</span>
+        <div class="inner">
+            <span class="kicker reveal" contenteditable="true">AGENT COMMERCE · ON-CHAIN · MPP-ALIGNED</span>
+            <h1 class="reveal" contenteditable="true">
+                AgentPay <span class="gradient">Passport</span><span class="cursor" contenteditable="false"></span>
+            </h1>
+            <p class="tagline reveal" contenteditable="true">
+                Give your AI agent an on-chain budget — let it discover tools, transact, deliver, and remember. No human in the loop.
+            </p>
+            <div class="meta-row reveal">
+                <span contenteditable="true">CHAIN <strong>Monad Testnet · 10143</strong></span>
+                <span contenteditable="true">STACK <strong>Solidity · viem · Fastify · Next.js 16</strong></span>
+                <span contenteditable="true">STATUS <strong>MVP shipping</strong></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================
+         SLIDE 2 — The Problem (two-column)
+         ====================================================== -->
+    <section class="slide" data-title="The Problem">
+        <span class="slide-tag-tl reveal" contenteditable="false">01 · The Problem</span>
+        <span class="slide-number" contenteditable="false">02 / 09</span>
+        <div class="slide-content">
+            <h2 class="reveal" contenteditable="true" style="text-align:center; margin-bottom: var(--content-gap);">
+                AI economy is broken on <span class="accent">both sides</span>.
+            </h2>
+            <div class="two-col reveal">
+                <div class="pain-card">
+                    <span class="role" contenteditable="true">PROVIDER · 供给方痛点</span>
+                    <h3 contenteditable="true">独立 AI 工程师无法变现</h3>
+                    <p class="quote" contenteditable="true">"I tuned a world-class prompt. Then I spent a month building Stripe + auth + a SaaS dashboard nobody uses."</p>
+                    <p contenteditable="true">非核心工程量是核心能力建设的 <strong class="amber">5–10×</strong>。结果是大量高质量 AI 能力被困在 GitHub README 里。</p>
+                    <div class="stat" contenteditable="true">~90% of indie AI tools never reach revenue.</div>
+                </div>
+                <div class="pain-card right">
+                    <span class="role" contenteditable="true">END USER · 需求方痛点</span>
+                    <h3 contenteditable="true">订阅疲劳 + 强制人工介入</h3>
+                    <p class="quote" contenteditable="true">"我每月付 $99 用 10 次。每一步还要点 OAuth、绑卡、确认条款。Agent 是自主的，钱包却不是。"</p>
+                    <p contenteditable="true">90% 的订阅费在补贴 10% 的重度用户——SaaS 经济学的<strong class="amber">结构性不公</strong>。</p>
+                    <div class="stat" contenteditable="true">$75+/mo for tools used 10×.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================
+         SLIDE 3 — The Insight (quote)
+         ====================================================== -->
+    <section class="slide quote-slide" data-title="The Insight">
+        <span class="slide-tag-tl reveal" contenteditable="false">02 · The Insight</span>
+        <span class="slide-number" contenteditable="false">03 / 09</span>
+        <div class="slide-content">
+            <div class="marks reveal" contenteditable="false">“</div>
+            <blockquote class="reveal" contenteditable="true">
+                A2A lets agents <span class="muted">talk.</span><br>
+                AgentPay Passport lets agents <span class="accent">transact</span>.
+            </blockquote>
+            <p class="sub reveal" contenteditable="true">
+                MPP standardized <em>how</em> an agent pays. We added <span class="mint">what the agent decides</span>, <span class="amber">where it discovers</span>, and <span class="accent">how it remembers</span>. AgentPay Passport is MPP-aligned — Stripe + Tempo Labs' Machine Payments Protocol is the substrate; we are the commerce layer on top.
+            </p>
+        </div>
+    </section>
+
+    <!-- ======================================================
+         SLIDE 4 — Three Pillars
+         ====================================================== -->
+    <section class="slide" data-title="Three Pillars">
+        <span class="slide-tag-tl reveal" contenteditable="false">03 · Solution</span>
+        <span class="slide-number" contenteditable="false">04 / 09</span>
+        <div class="slide-content">
+            <h2 class="reveal" contenteditable="true" style="text-align:center; margin-bottom: var(--content-gap);">
+                Three locked-in pillars. <span class="muted">One protocol.</span>
+            </h2>
+            <div class="pillar-grid">
+                <div class="pillar reveal">
+                    <span class="num">01</span>
+                    <h3 contenteditable="true">Paid Tools Marketplace</h3>
+                    <p contenteditable="true">Provider 一次注册，全网 Buyer Agent 可见。MCP-compatible JSON schema + 链上 payment gate，permissionless 列表，无中心化看门人。</p>
+                    <div class="chip" contenteditable="true">MCP schema · Pull-payment · No moderation</div>
+                </div>
+                <div class="pillar reveal">
+                    <span class="num">02</span>
+                    <h3 contenteditable="true">Policy-Bounded Wallet</h3>
+                    <p contenteditable="true">预算 + 单次上限 + 24h 滚动 cap 由合约 <code class="mono">require()</code> 强制。即便 LLM 被 prompt-inject，<strong class="mint">超额支付物理上不可能</strong>。</p>
+                    <div class="chip" contenteditable="true">Budget · Per-call cap · Operator key isolation</div>
+                </div>
+                <div class="pillar reveal">
+                    <span class="num">03</span>
+                    <h3 contenteditable="true">Reputation Passport</h3>
+                    <p contenteditable="true">ERC-8004 兼容 + Soulbound ERC-721。Agent 每完成一次任务累计 reputation——<strong class="amber">跨 marketplace 可读的链上身份</strong>。</p>
+                    <div class="chip" contenteditable="true">ERC-8004 · Soulbound · Cross-marketplace</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================
+         SLIDE 5 — Demo Timeline (Charlie's journey)
+         ====================================================== -->
+    <section class="slide" data-title="Demo Flow">
+        <span class="slide-tag-tl reveal" contenteditable="false">04 · Demo · Zero human-in-the-loop</span>
+        <span class="slide-number" contenteditable="false">05 / 09</span>
+        <div class="slide-content">
+            <h2 class="reveal" contenteditable="true" style="text-align:center; margin-bottom: clamp(0.5rem, 1.2vw, 1rem);">
+                Submit a task. <span class="mint">Walk away.</span> Come back to delivery.
+            </h2>
+            <div class="timeline">
+                <div class="tl-row reveal">
+                    <span class="ts">T+0.0s</span>
+                    <span class="what"><strong contenteditable="true">Create &amp; Fund Agent</strong> <span contenteditable="true">— budget 0.5 MON, cap 0.15 MON/call</span></span>
+                    <span class="amount">sig <span class="mon">1×</span></span>
+                </div>
+                <div class="tl-row reveal">
+                    <span class="ts">T+0.4s</span>
+                    <span class="what"><strong contenteditable="true">Submit Task</strong> <span contenteditable="true">— "3 launch tweets w/ images for my SaaS"</span></span>
+                    <span class="amount" contenteditable="true">prompt hash anchored</span>
+                </div>
+                <div class="tl-row payment reveal">
+                    <span class="ts">T+1.2s</span>
+                    <span class="what"><strong contenteditable="true">Plan generated</strong> <span contenteditable="true">— 4 tools selected · 1 rejected (over cap)</span></span>
+                    <span class="amount" contenteditable="true">DeepSeek · open-loop</span>
+                </div>
+                <div class="tl-row payment reveal">
+                    <span class="ts">T+3.1s</span>
+                    <span class="what"><strong contenteditable="true">pay() → Copywriter Tool</strong> <span contenteditable="true">— 3 tweet drafts returned</span></span>
+                    <span class="amount">— <span class="mon">0.04 MON</span></span>
+                </div>
+                <div class="tl-row payment reveal">
+                    <span class="ts">T+6.8s</span>
+                    <span class="what"><strong contenteditable="true">pay() × 3 → Image Tool</strong> <span contenteditable="true">— 3 cover images integrated</span></span>
+                    <span class="amount">— <span class="mon">0.09 MON</span></span>
+                </div>
+                <div class="tl-row signal reveal">
+                    <span class="ts">T+9.4s</span>
+                    <span class="what"><strong contenteditable="true">Deliverable assembled</strong> <span contenteditable="true">— 3 ready-to-post cards · result hash on-chain</span></span>
+                    <span class="amount" contenteditable="true">total 0.13 MON</span>
+                </div>
+                <div class="tl-row signal reveal">
+                    <span class="ts">T+12s</span>
+                    <span class="what"><strong contenteditable="true">User rates 5★</strong> <span contenteditable="true">— Passport reputation 50 → 51</span></span>
+                    <span class="amount">sig <span class="mon">2nd</span></span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================
+         SLIDE 6 — Architecture
+         ====================================================== -->
+    <section class="slide" data-title="Architecture">
+        <span class="slide-tag-tl reveal" contenteditable="false">05 · Architecture</span>
+        <span class="slide-number" contenteditable="false">06 / 09</span>
+        <div class="slide-content">
+            <h2 class="reveal" contenteditable="true" style="text-align:center; margin-bottom: var(--content-gap);">
+                One Node process. <span class="muted">Three roles.</span> Chain as source of truth.
+            </h2>
+            <div class="arch">
+                <div class="node web reveal">
+                    <span class="lbl">CLIENT</span>
+                    <h4 contenteditable="true">Next.js 16 Web</h4>
+                    <ul>
+                        <li contenteditable="true">React 19 + Tailwind v4</li>
+                        <li contenteditable="true">wagmi v2 + RainbowKit</li>
+                        <li contenteditable="true">SSE timeline stream</li>
+                        <li contenteditable="true">Vercel</li>
+                    </ul>
+                </div>
+                <div class="node api reveal">
+                    <span class="lbl">API + WORKER</span>
+                    <h4 contenteditable="true">Fastify + BullMQ</h4>
+                    <ul>
+                        <li contenteditable="true">Node 22 · TypeScript</li>
+                        <li contenteditable="true">DeepSeek (OpenAI-compat)</li>
+                        <li contenteditable="true">Drizzle · Neon · Upstash</li>
+                        <li contenteditable="true">Fly.io · single process</li>
+                    </ul>
+                </div>
+                <div class="node chain reveal">
+                    <span class="lbl">CHAIN</span>
+                    <h4 contenteditable="true">Monad Testnet</h4>
+                    <ul>
+                        <li contenteditable="true">Marketplace.sol (Foundry)</li>
+                        <li contenteditable="true">Passport.sol (ERC-8004)</li>
+                        <li contenteditable="true">viem event watcher</li>
+                        <li contenteditable="true">Pull-payment ledger</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="arch-arrow-row reveal">
+                <div class="arch-arrow"><span contenteditable="true">SIWE · REST · SSE</span></div>
+                <div class="arch-arrow"><span contenteditable="true">pay() / verifyReceipt</span></div>
+                <div class="arch-arrow"><span contenteditable="true">events / receipts</span></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================
+         SLIDE 7 — Competitive Landscape (2x2)
+         ====================================================== -->
+    <section class="slide" data-title="Landscape">
+        <span class="slide-tag-tl reveal" contenteditable="false">06 · Positioning</span>
+        <span class="slide-number" contenteditable="false">07 / 09</span>
+        <div class="slide-content">
+            <h2 class="reveal" contenteditable="true" style="text-align:center; margin-bottom: clamp(0.5rem, 1.2vw, 1rem);">
+                Open <span class="mint">×</span> Complete. <span class="muted">No direct comp.</span>
+            </h2>
+            <div class="matrix-wrap">
+                <div class="matrix reveal">
+                    <span class="axis-label top" contenteditable="false">▲ Complete System</span>
+                    <span class="axis-label bottom" contenteditable="false">▼ Point Function</span>
+                    <span class="axis-label left" contenteditable="false">◀ Closed</span>
+                    <span class="axis-label right" contenteditable="false">Open ▶</span>
+                    <!-- Closed + Complete: GPT Store -->
+                    <div class="pt" style="top:22%; left:28%;"><span class="dot"></span><span class="label" contenteditable="true">GPT Store</span></div>
+                    <!-- Closed + Point: Skyfire -->
+                    <div class="pt" style="top:70%; left:32%;"><span class="dot"></span><span class="label" contenteditable="true">Skyfire</span></div>
+                    <!-- Open + Point: x402 -->
+                    <div class="pt" style="top:78%; left:72%;"><span class="dot"></span><span class="label" contenteditable="true">x402 / MPP</span></div>
+                    <!-- Open + Point: MCP -->
+                    <div class="pt" style="top:65%; left:60%;"><span class="dot"></span><span class="label" contenteditable="true">MCP Registry</span></div>
+                    <!-- Open + Complete: US -->
+                    <div class="pt us" style="top:25%; left:75%;"><span class="dot"></span><span class="label" contenteditable="true">AgentPay Passport</span></div>
+                </div>
+                <div class="matrix-side">
+                    <h3 class="reveal-x" contenteditable="true"><span class="accent">We sit alone</span> in the open + complete quadrant.</h3>
+                    <p class="reveal-x" contenteditable="true"><strong>x402 / MPP</strong>: standardized payment handshake — open, but a single primitive.</p>
+                    <p class="reveal-x" contenteditable="true"><strong>MCP Registry</strong>: tool discovery — open, but no payment layer.</p>
+                    <p class="reveal-x" contenteditable="true"><strong>GPT Store</strong>: complete, but closed, subscription, OpenAI-only.</p>
+                    <p class="reveal-x" contenteditable="true"><strong>Skyfire</strong>: agent wallet — no marketplace, no reputation.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================
+         SLIDE 8 — Build Status
+         ====================================================== -->
+    <section class="slide" data-title="Status">
+        <span class="slide-tag-tl reveal" contenteditable="false">07 · Where we are</span>
+        <span class="slide-number" contenteditable="false">08 / 09</span>
+        <div class="slide-content">
+            <h2 class="reveal" contenteditable="true" style="text-align:center; margin-bottom: var(--content-gap);">
+                Built in 2 weeks. <span class="mint">End-to-end vertical slice.</span>
+            </h2>
+            <div class="status-grid">
+                <div class="status-row done reveal">
+                    <span class="icon">✓</span>
+                    <span class="name"><strong contenteditable="true">Smart Contracts</strong><br><span contenteditable="true">Marketplace.sol · Passport.sol · Foundry tests</span></span>
+                </div>
+                <div class="status-row done reveal">
+                    <span class="icon">✓</span>
+                    <span class="name"><strong contenteditable="true">Backend API + Worker</strong><br><span contenteditable="true">Fastify · BullMQ · Drizzle · DeepSeek</span></span>
+                </div>
+                <div class="status-row done reveal">
+                    <span class="icon">✓</span>
+                    <span class="name"><strong contenteditable="true">Frontend</strong><br><span contenteditable="true">Next.js 16 · 5 pages · timeline view shipped</span></span>
+                </div>
+                <div class="status-row done reveal">
+                    <span class="icon">✓</span>
+                    <span class="name"><strong contenteditable="true">Onchain ↔ App glue</strong><br><span contenteditable="true">viem watcher · SSE pubsub · operator-key encryption</span></span>
+                </div>
+                <div class="status-row wip reveal">
+                    <span class="icon">●</span>
+                    <span class="name"><strong contenteditable="true">Provider SDK</strong><br><span contenteditable="true">@agentpay/provider-middleware — payment gate one-liner</span></span>
+                </div>
+                <div class="status-row todo reveal">
+                    <span class="icon">○</span>
+                    <span class="name"><strong contenteditable="true">Alpha</strong><br><span contenteditable="true">Public testnet launch · 5 reference providers</span></span>
+                </div>
+            </div>
+            <div class="next-strip reveal">
+                <strong>Next 30 days</strong><span contenteditable="true">multi-LLM router · MPP receipt standardization · cross-marketplace Passport SDK · mainnet path.</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ======================================================
+         SLIDE 9 — Closing
+         ====================================================== -->
+    <section class="slide close-slide" data-title="Close">
+        <span class="slide-tag-tl reveal" contenteditable="false">08 · Close</span>
+        <span class="slide-number" contenteditable="false">09 / 09</span>
+        <div class="slide-content">
+            <span class="tag magenta reveal" contenteditable="true">⚡ Agents need an economy. We built it.</span>
+            <h1 class="reveal" contenteditable="true">
+                Give your agent <span class="accent">a budget</span>.<br>
+                <span class="muted">It will run.</span>
+            </h1>
+            <p class="reveal" contenteditable="true" style="font-size: var(--h3-size); max-width: 32ch; color: var(--text-1); line-height:1.3;">
+                MPP-aligned. Reputation-native. Agent-first.
+            </p>
+            <a href="#" class="cta reveal" contenteditable="true">Try the testnet →</a>
+            <div class="signature reveal" contenteditable="true">
+                AgentPay Passport · Monad Blitz Shanghai V2 · ernestchen247@gmail.com
+            </div>
+        </div>
+    </section>
+
+    <script>
+        /* ===========================================
+           SLIDE PRESENTATION CONTROLLER
+           =========================================== */
+        class SlidePresentation {
+            constructor() {
+                this.slides = document.querySelectorAll('.slide');
+                this.currentSlide = 0;
+                this.setupIntersectionObserver();
+                this.setupKeyboardNav();
+                this.setupTouchNav();
+                this.setupProgressBar();
+                this.setupNavDots();
+            }
+
+            setupIntersectionObserver() {
+                // Trigger reveal animations as slides enter viewport.
+                const obs = new IntersectionObserver((entries) => {
+                    entries.forEach(e => {
+                        if (e.isIntersecting) {
+                            e.target.classList.add('visible');
+                            // Update current slide index for dot highlight.
+                            const idx = Array.from(this.slides).indexOf(e.target);
+                            if (idx >= 0) this.setActive(idx);
+                        }
+                    });
+                }, { threshold: 0.5 });
+                this.slides.forEach(s => obs.observe(s));
+            }
+
+            setupKeyboardNav() {
+                document.addEventListener('keydown', (e) => {
+                    // Skip if user is editing text.
+                    if (e.target.getAttribute('contenteditable') === 'true') return;
+                    if (['ArrowDown', 'PageDown', ' '].includes(e.key)) {
+                        e.preventDefault();
+                        this.goTo(Math.min(this.currentSlide + 1, this.slides.length - 1));
+                    } else if (['ArrowUp', 'PageUp'].includes(e.key)) {
+                        e.preventDefault();
+                        this.goTo(Math.max(this.currentSlide - 1, 0));
+                    } else if (e.key === 'Home') {
+                        this.goTo(0);
+                    } else if (e.key === 'End') {
+                        this.goTo(this.slides.length - 1);
+                    }
+                });
+            }
+
+            setupTouchNav() {
+                let startY = 0;
+                document.addEventListener('touchstart', (e) => { startY = e.touches[0].clientY; }, { passive: true });
+                document.addEventListener('touchend', (e) => {
+                    const dy = startY - e.changedTouches[0].clientY;
+                    if (Math.abs(dy) < 40) return;
+                    if (dy > 0) this.goTo(Math.min(this.currentSlide + 1, this.slides.length - 1));
+                    else this.goTo(Math.max(this.currentSlide - 1, 0));
+                }, { passive: true });
+            }
+
+            setupProgressBar() {
+                const bar = document.getElementById('progressBar');
+                const update = () => {
+                    const max = document.documentElement.scrollHeight - window.innerHeight;
+                    const pct = max > 0 ? (window.scrollY / max) * 100 : 0;
+                    bar.style.width = pct + '%';
+                };
+                window.addEventListener('scroll', update, { passive: true });
+                update();
+            }
+
+            setupNavDots() {
+                const nav = document.getElementById('navDots');
+                this.slides.forEach((s, i) => {
+                    const btn = document.createElement('button');
+                    btn.setAttribute('aria-label', `Slide ${i + 1}: ${s.dataset.title || ''}`);
+                    btn.addEventListener('click', () => this.goTo(i));
+                    nav.appendChild(btn);
+                });
+            }
+
+            setActive(idx) {
+                this.currentSlide = idx;
+                document.querySelectorAll('.nav-dots button').forEach((b, i) => {
+                    b.classList.toggle('active', i === idx);
+                });
+            }
+
+            goTo(idx) {
+                this.slides[idx]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        /* ===========================================
+           INLINE EDITOR
+           Hover top-left or press E to toggle.
+           Ctrl/Cmd + S to save. State in localStorage.
+           =========================================== */
+        class InlineEditor {
+            constructor() {
+                this.isActive = false;
+                this.storageKey = 'agentpay-pitch-edits';
+                this.toggleBtn = document.getElementById('editToggle');
+                this.toolbar = document.getElementById('editToolbar');
+                this.hotzone = document.getElementById('editHotzone');
+                this.hideTimeout = null;
+                this.editables = document.querySelectorAll('[contenteditable="true"]');
+                this.restore();
+                this.bind();
+            }
+
+            bind() {
+                // Click toggle button
+                this.toggleBtn.addEventListener('click', () => this.toggle());
+
+                // Hotzone hover with 400ms grace
+                this.hotzone.addEventListener('mouseenter', () => {
+                    clearTimeout(this.hideTimeout);
+                    this.toggleBtn.classList.add('show');
+                });
+                this.hotzone.addEventListener('mouseleave', () => {
+                    this.hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.toggleBtn.classList.remove('show');
+                    }, 400);
+                });
+                this.toggleBtn.addEventListener('mouseenter', () => clearTimeout(this.hideTimeout));
+                this.toggleBtn.addEventListener('mouseleave', () => {
+                    this.hideTimeout = setTimeout(() => {
+                        if (!this.isActive) this.toggleBtn.classList.remove('show');
+                    }, 400);
+                });
+                this.hotzone.addEventListener('click', () => this.toggle());
+
+                // Keyboard E (skip when typing)
+                document.addEventListener('keydown', (e) => {
+                    if ((e.key === 'e' || e.key === 'E') && !e.target.getAttribute('contenteditable')) {
+                        this.toggle();
+                    }
+                    if ((e.key === 's' || e.key === 'S') && (e.metaKey || e.ctrlKey)) {
+                        e.preventDefault();
+                        this.save();
+                    }
+                });
+
+                // Persist on edit
+                this.editables.forEach(el => {
+                    el.addEventListener('input', () => this.save(true));
+                });
+
+                // Toolbar
+                document.getElementById('saveBtn').addEventListener('click', () => this.save());
+                document.getElementById('exportBtn').addEventListener('click', () => this.export());
+                document.getElementById('resetBtn').addEventListener('click', () => this.reset());
+            }
+
+            toggle() {
+                this.isActive = !this.isActive;
+                document.body.classList.toggle('edit-mode', this.isActive);
+                this.toggleBtn.classList.toggle('active', this.isActive);
+                this.toolbar.classList.toggle('show', this.isActive);
+            }
+
+            save(quiet = false) {
+                const data = {};
+                this.editables.forEach((el, i) => { data[i] = el.innerHTML; });
+                localStorage.setItem(this.storageKey, JSON.stringify(data));
+                if (!quiet) this.flash('Saved ✓');
+            }
+
+            restore() {
+                try {
+                    const data = JSON.parse(localStorage.getItem(this.storageKey) || '{}');
+                    this.editables.forEach((el, i) => {
+                        if (data[i] !== undefined) el.innerHTML = data[i];
+                    });
+                } catch {}
+            }
+
+            export() {
+                // Snapshot current DOM and download as HTML.
+                const clone = document.documentElement.cloneNode(true);
+                // Strip edit UI from export
+                ['editHotzone', 'editToggle', 'editToolbar'].forEach(id => {
+                    clone.querySelector('#' + id)?.remove();
+                });
+                clone.querySelector('.keyboard-hint')?.remove();
+                const blob = new Blob(['<!DOCTYPE html>\n' + clone.outerHTML], { type: 'text/html' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = 'agentpay-pitch-edited.html';
+                a.click();
+                URL.revokeObjectURL(url);
+                this.flash('Exported ✓');
+            }
+
+            reset() {
+                if (!confirm('重置所有编辑到原始版本？')) return;
+                localStorage.removeItem(this.storageKey);
+                location.reload();
+            }
+
+            flash(msg) {
+                const t = document.createElement('div');
+                t.textContent = msg;
+                t.style.cssText = `
+                    position:fixed; bottom: 4rem; right: 1rem;
+                    padding: 0.6em 1.2em; background: var(--accent); color: var(--bg-0);
+                    border-radius: 999px; font-family: var(--font-mono); font-size: var(--small-size);
+                    letter-spacing: 0.1em; text-transform: uppercase;
+                    z-index: 10002; opacity: 0; transition: opacity 0.3s;
+                `;
+                document.body.appendChild(t);
+                requestAnimationFrame(() => t.style.opacity = '1');
+                setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 1400);
+            }
+        }
+
+        new SlidePresentation();
+        new InlineEditor();
+    </script>
+</body>
+</html>

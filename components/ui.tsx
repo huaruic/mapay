@@ -58,24 +58,38 @@ export function Field({
   label,
   value,
   multiline,
+  name,
+  required,
+  placeholder,
 }: {
   label: string;
-  value: string;
+  value?: string;
   multiline?: boolean;
+  name?: string;
+  required?: boolean;
+  placeholder?: string;
 }) {
+  const baseClass =
+    "w-full rounded-[6px] border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--graphite)]";
   return (
     <label className="block">
       <span className="mb-2 block text-sm font-medium text-[var(--muted)]">{label}</span>
       {multiline ? (
         <textarea
+          name={name}
           defaultValue={value}
+          required={required}
+          placeholder={placeholder}
           rows={4}
-          className="w-full resize-none rounded-[6px] border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--graphite)]"
+          className={`${baseClass} resize-none`}
         />
       ) : (
         <input
+          name={name}
           defaultValue={value}
-          className="w-full rounded-[6px] border border-[var(--line)] bg-white px-3 py-2 text-sm outline-none focus:border-[var(--graphite)]"
+          required={required}
+          placeholder={placeholder}
+          className={baseClass}
         />
       )}
     </label>

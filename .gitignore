@@ -19,6 +19,9 @@ contracts/cache/
 contracts/broadcast/
 !contracts/broadcast/**/dry-run/
 
+# Local deploy artifacts (per-machine; addresses.example.json is the committed template)
+lib/abi/addresses.local.json
+
 # Lockfiles (跨人/跨机器一致性更重要)
 # package-lock.json   # 保留
 

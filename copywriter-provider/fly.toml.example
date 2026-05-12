@@ -1,0 +1,41 @@
+# Fly.io deployment template for copywriter-provider.
+# Copy to fly.toml and `fly launch --copy-config` (or `fly deploy`).
+# Secrets (PROVIDER_PK, DEEPSEEK_API_KEY) must be set via `fly secrets set`, NOT in this file.
+
+app = "agentpay-copywriter-provider"
+primary_region = "sjc"   # pick the region closest to your Monad RPC
+
+[build]
+  # Run via `node dist/server.js` after `npm run build`.
+  # If you bring your own Dockerfile, point [build].dockerfile to it.
+
+[env]
+  PORT = "4101"
+  # CHAIN_RPC_URL, MARKETPLACE_ADDRESS, PROVIDER_ADDRESS, TOOL_ID, PRICE_WEI
+  # can live here OR in `fly secrets`. Keep PROVIDER_PK + DEEPSEEK_API_KEY in
+  # secrets only.
+
+[http_service]
+  internal_port = 4101
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 50
+    hard_limit = 100
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+[checks]
+  [checks.alive]
+    type = "tcp"
+    port = 4101
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
