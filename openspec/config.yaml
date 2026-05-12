@@ -1,0 +1,110 @@
+schema: spec-driven
+
+# Project context shown to AI when creating artifacts.
+# Source of truth: agentpay-passport-prd.md (read it before any non-trivial proposal).
+context: |
+  Project: AgentPay Passport — 面向 autonomous AI agents 的链上付费服务市场。
+  Hackathon: Monad Blitz @上海 V2 提交版本。
+
+  ## 一句话定位
+  A2A lets agents talk. AgentPay Passport lets agents transact.
+  对话已被解决（MCP/A2A），交易尚未被解决；交易是 agent 从聊天机器人进化为经济主体的必要条件。
+
+  ## 链与结算
+  - 单链：Monad（不做跨链桥、不做多链抽象）
+  - 原生代币：MON
+  - 目标：高频微支付（每秒数笔、每笔几美分级别），结算延迟与成本远低于传统信用卡
+
+  ## 三大模块（必须作为一个整体，不能孤立交付）
+  1. Paid Tools Marketplace — Provider 注册 paid tool（endpoint、I/O schema、price-per-call、payout address）；
+     无许可注册、无许可消费、无中心化看门人；MVP 只展示完整列表，无搜索/筛选/排序。
+  2. Policy-Bounded Agent Wallet — End User 创建 Buyer Agent，设定预算总额 + 单次调用上限；
+     **预算约束由协议层（合约）强制执行，不是由 LLM/agent 层保证**；prompt injection 也无法绕过。
+  3. Reputation Passport — 每次完成任务累积链上 reputation；以 NFT 形态作为 agent 拥有的资产，
+     可被未来其他 marketplace 读取与认可（跨 marketplace 身份资产，而非平台内部数据）。
+
+  ## 用户角色
+  - Provider（如 Alice）：把 AI 能力注册为 paid tool 的工程师/独立开发者。控制台支持注册、定价、
+    启用/禁用、改价、查看收入/调用次数/被调历史/评分、提现。
+  - End User（如 Charlie）：创建并资助 Buyer Agent、提交任务、查看可视化执行过程、验收交付物、
+    打分、提取剩余余额。
+  - Buyer Agent：End User 创建的软件代理（不是第三种用户角色）。能力包括 marketplace 发现、自主选择、
+    预算约束遵守（协议层强制）、多 tool 编排、产物整合、reputation 累积。
+  - Provider 与 End User 通过协议层匿名协作，永不直接互识。
+
+  ## 非妥协约束（实现时容易踩的红线）
+  - 任务执行期间零人工介入：End User 点 Start Task 之后，agent 自主跑完；不允许 per-step 确认、
+    OAuth 弹窗、签名请求。仅 agent 创建/充值、提现、打分这几个动作需要用户签名。
+  - 预算与单次上限是协议层硬约束，不是 agent 自律行为。
+  - Provider ↔ End User 匿名：不要做暴露彼此身份的功能。
+  - Tool 描述格式遵循 MCP 兼容 schema；**唯一扩展是 tool 调用前插入 onchain payment gate（x402 风格的握手）**。
+    不要发明私有 tool 描述格式。
+  - Buyer Agent 仅 open-loop planning：一次性出计划、严格执行；不做基于中间结果的 adaptive replanning。
+  - 所有支付与服务调用关系链上可追溯；任何第三方可从区块浏览器还原一次 task 的完整经济与执行历史。
+
+  ## MVP 验收硬指标
+  - Provider 首次访问 → 服务上架 ≤ 10 分钟；可查看调用次数/收入；可成功 withdraw。
+  - End User 首次访问 → 看到整合后的最终交付物 ≤ 5 分钟；从"提交任务"到"看到产物"之间不需要任何输入。
+  - Reputation Passport 是独立链上资产，可被外部读取。
+
+  ## MVP 明确不做（OUT OF SCOPE，遇到就回到 PRD §10）
+  - 争议仲裁 / 退款
+  - 内容审核 / KYC / AML
+  - 跨链支付
+  - 复杂 marketplace 查询（搜索、tag 过滤、按价格/评分排序）
+  - Closed-loop adaptive replanning
+  - Provider/End User 真实身份验证（仅钱包地址识别）
+
+  ## 当前仓库状态
+  - PRD: agentpay-passport-prd.md
+  - 架构 design doc: docs/superpowers/specs/2026-05-12-agentpay-architecture-design.md
+  - 无代码、无 git history、无 build system（尚未初始化）
+
+  ## 已敲定的技术栈与架构决策（2026-05-12，含 hybrid review 后确定）
+  - 完成节奏: Hackathon Demo + 1-2 周可迭代到 Alpha
+  - Demo 重心: End User 侧（Buyer Agent 自主执行 + Timeline 演出）
+  - **协议定位（pitch 用语）**: "MPP-aligned"——AgentPay 在 MPP 之上加 marketplace
+    discovery、policy-bounded wallet、ERC-8004 reputation passport。x402 是 MPP 的早期版本。
+  - 合约: Solidity 0.8.20 + Foundry，部署到 Monad testnet (chain id 10143)。
+    合并为 2 个合约：Marketplace.sol（ToolRegistry + AgentRegistry + AgentWallet +
+    PaymentEscrow 四合一）+ Passport.sol（**ERC-8004 兼容 + Soulbound ERC-721**，
+    agent reputation + task 历史 hash；保证跨平台 reputation 可读）。
+    foundry.toml 启用 via_ir + Cancun EVM。OpenZeppelin v5.x 标准库。
+  - 后端: Node 22 + TS + Fastify + viem v2，REST + SSE。
+    Agent Worker 与 HTTP API **同进程部署**（api/src/{routes,worker}/），
+    用 BullMQ + Upstash Redis 做持久化队列；只起一个 Fly.io app。
+    赛后再拆 worker 到独立进程是 1-2 行配置改动。
+    **不用 Vercel Edge / Serverless**——Worker 长任务（8-12s 含链上确认）不适合。
+  - 数据库: Postgres (Neon) + Drizzle ORM。
+  - LLM: **DeepSeek 默认**（OpenAI 兼容 API，open-loop tool use 通过 function calling 实现）。
+    抽象层 LLMProvider 预留切到 Claude/GPT 的接口。
+  - 前端: Next.js 16 + React 19 + Tailwind v4 + lucide-react（已搭好）+
+    将补 wagmi v2 + viem + RainbowKit + TanStack Query + Zustand + react-hook-form + zod。
+    SSE 走原生 EventSource + Last-Event-ID 重连。
+    **wagmi/RainbowKit 配置参考 scaffold-monad-foundry 模板抄过来**（不整仓克隆）。
+  - Monad Testnet 参数: Chain ID 10143、Currency MON、RPC https://rpc.testnet.monad.xyz、
+    Explorer https://testnet.monadexplorer.com、Multicall3 0xcA11bde05977b3631167028862bE2a173976CA11。
+  - 仓库布局: **保持当前 flat Next.js**，新增同级 `contracts/`（Foundry）和 `api/`（Fastify）目录。
+    不引入 pnpm workspaces / Turbo——hackathon 范围内额外开销不值得。
+    赛后扩规模时再切 monorepo（移动文件，不影响代码逻辑）。
+  - Lint/Test: 当前 `tsc --noEmit`；后续合约 forge test、后端 vitest、Biome 可后加。
+  - 部署: Vercel (web) + Fly.io (api) + Neon (db) + Upstash (redis) + Pinata (IPFS schema)。
+  - Provider 调用协议: HTTP POST + MCP-style body + 5 个 `X-AgentPay-*` header
+    （Receipt / Agent-Id / Tool-Id / Step / Input-Hash）。Provider 服务用
+    @agentpay/provider-middleware 一行启用，内部调 Marketplace.verifyAndConsumeReceipt() 原子校验。
+    402 fallback 兼容未付款握手（MPP/x402 风格）。
+  - 第一阶段只出 Fastify adapter；Express adapter + Python SDK 列入 P2。
+
+  ## 关键决策来源
+  - 详细架构: docs/superpowers/specs/2026-05-12-agentpay-architecture-design.md（781 行）
+  - 第一个变更: openspec/changes/add-marketplace-and-provider-onboarding/
+  - 历史快照 (含 codex 视角): agentpay-passport-tech-stack.md（不再维护，仅参考）
+
+# Per-artifact rules (optional)
+# rules:
+#   proposal:
+#     - 每个 proposal 在 Why 段必须引用 PRD 对应小节编号
+#     - 必须显式列出 Non-Goals，与 PRD §10 对齐
+#   tasks:
+#     - 单个 task ≤ 2 小时；超过即拆分
+#     - 跨模块改动须在 task 描述里标注接触的模块（Marketplace / Wallet / Passport）

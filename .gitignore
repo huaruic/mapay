@@ -1,0 +1,32 @@
+.next/
+node_modules/
+out/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.DS_Store
+*.tsbuildinfo
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+!contracts/broadcast/**/dry-run/
+
+# Lockfiles (跨人/跨机器一致性更重要)
+# package-lock.json   # 保留
+
+# Editor
+.idea/
+.vscode/
+
+# Agent / coding tool runtime state (not project source)
+.agents/
+.claude/
+.context/
