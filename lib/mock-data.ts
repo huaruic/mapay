@@ -12,6 +12,7 @@ import {
 
 export const navItems = [
   { label: "Overview", href: "/" },
+  { label: "Marketplace", href: "/marketplace" },
   { label: "Provider", href: "/provider" },
   { label: "Agents", href: "/agents" },
   { label: "Audit", href: "/tasks/task-mkt-042" },
